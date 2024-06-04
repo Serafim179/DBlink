@@ -22,9 +22,9 @@ if not tmp_result_dir_exist:
 
 ####### Step I - Parameter Initialization #######
 # Run flags
-GenerateTrainData = True
+GenerateTrainData = False
 GenerateTestData = True
-TrainNetFlag = False
+TrainNetFlag = True
 TestOnRealData = False
 
 path = r'./' # Path to model
@@ -32,7 +32,7 @@ model_name = 'LSTM_model' # Model name
 scale = 4 # Scale factor, the size of the reconstructed image pixels
 sum_factor = 10 # The temporal window size DBlink uses to sum localizations
 pixel_size = 160 # Camera pixel size - relevant for experimental data
-simulated_video_length = 3000 # Length of simulated video - relevant for simulated data generation
+simulated_video_length = 500 # Length of simulated video - relevant for simulated data generation
 density = 0.002 # Blinking density (percentage out of the number of non-zero pixels in the simulated structure)
 img_size = 32 # Simulated image size - relevant for simulated data generation
 
