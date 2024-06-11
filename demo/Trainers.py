@@ -67,7 +67,8 @@ class LSTM_Trainer:
             self.optimizer.zero_grad()
 
             out = self.model(X_train, torch.flip(X_train, dims=[1]))
-
+            if len(out) == 2:
+              out = out[0]
             # Compute Loss
             loss = self.loss_fn(out, y_train) + self.lam * consistency_reg(out) + self.tv_loss(out)
 
@@ -164,25 +165,26 @@ class LSTM_overlap_Trainer:
             y_train = y_train.to(self.device)
 
             prev_out = self.model(X_train[:, self.down[0]:self.up[0]],
-                                      torch.flip(X_train[:, self.down[0]:self.up[0]], dims=[1]))
+                                      torch.flip(X_train[:, self.down[0]:self.up[0]], dims=[1]),
+                                  out_ind=self.out_ind[0])
 
             for j in range(X_train.shape[1]):
                 # Forward pass
                 self.optimizer.zero_grad()
 
                 out = self.model(X_train[:, self.down[j]:self.up[j]],
-                                      torch.flip(X_train[:, self.down[j]:self.up[j]], dims=[1]))
+                                 torch.flip(X_train[:, self.down[j]:self.up[j]], dims=[1]), out_ind=self.out_ind[j])
 
                 # Compute Loss
-                consistency_loss = consistency_reg(out) #torch.sum(torch.abs(out - prev_out.detach()))
-                loss = self.loss_fn(out[:,self.out_ind[j]], y_train[:, j]) + self.lam * consistency_loss + self.tv_loss(out[None, :, :, :, :])
+                consistency_loss = torch.sum(torch.abs(out - prev_out.detach()))
+                loss = self.loss_fn(out, y_train[:, j]) + self.lam * consistency_loss + self.tv_loss(out[None, :, :, :, :])
 
                 # Backward pass
                 loss.backward()
                 self.optimizer.step()
 
                 total_loss += loss.item()
-                #prev_out = out
+                prev_out = out
 
             cnt += 1
 
@@ -198,18 +200,20 @@ class LSTM_overlap_Trainer:
                 y_test = y_test.to(self.device)
 
                 prev_out = self.model(X_test[:, self.down[0]:self.up[0]],
-                                      torch.flip(X_test[:, self.down[0]:self.up[0]], dims=[1]))
+                                      torch.flip(X_test[:, self.down[0]:self.up[0]], dims=[1]),
+                                      out_ind=self.out_ind[0])
 
                 for j in range(X_test.shape[1]):
                     out = self.model(X_test[:, self.down[j]:self.up[j]],
-                                     torch.flip(X_test[:, self.down[j]:self.up[j]], dims=[1]))
+                                     torch.flip(X_test[:, self.down[j]:self.up[j]], dims=[1]),
+                                     out_ind=self.out_ind[j])
 
                     # Compute Loss
-                    consistency_loss = consistency_reg(out) #torch.sum(torch.abs(out - prev_out.detach()))
-                    loss = self.loss_fn(out[:,self.out_ind[j]], y_test[:, j]) + self.lam * consistency_loss + self.tv_loss(out[None, :, :, :, :])
+                    consistency_loss = torch.sum(torch.abs(out - prev_out.detach()))
+                    loss = self.loss_fn(out, y_test[:, j]) + self.lam * consistency_loss + self.tv_loss(out[None, :, :, :, :])
 
                     total_loss += loss.item()
-                    #prev_out = out
+                    prev_out = out
                 cnt += 1
 
         return total_loss / (cnt * self.batch_size * X_test.shape[1])
